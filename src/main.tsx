@@ -72,7 +72,7 @@ function App() {
     }
   })();
 
-  if (farmerPortal) return <FarmerPortal state={state} onExit={() => { setFarmerPortal(false); go({ page: 'overview' }); }} />;
+  if (farmerPortal) return <FarmerPortal state={state} update={update} onExit={() => { setFarmerPortal(false); go({ page: 'overview' }); }} />;
 
   return (
     <StoreCtx.Provider value={store}>

@@ -41,12 +41,22 @@ Everything is illustrative: people, farms, money, AgriStack IDs, IMD rainfall an
 
 ## Farmer portal
 
-Choose **Farmer login** in the sidebar or open `#/farmer`. Select a sample farmer
-(or enter the displayed demo Farmer ID) to view that farmer's applications,
-installer payments, progress history and record-sharing status. Sign out to
-switch profiles. The demo session survives reloads in the same browser tab.
+Choose **Farmer login** in the sidebar or open `#/farmer`. Enter a Farmer ID
+(for example `UP-09-4471-2286` for Sunita Devi). Sessions survive reloads in the
+same browser tab; sign out to switch profiles.
+
+Farmers can apply for drip irrigation, ponds, solar pumps and sprinklers; review
+investment loans, subsidy bridges and repayment estimates; and request field
+verification of existing infrastructure for a Resilience Record. Both request
+flows require explicit consent and create cases in the shared lender/verifier
+workflow. Applications, payment progress and sharing history persist locally.
+Financial support uses the infrastructure application, rather than creating a
+separate disconnected loan request. No loan is automatically approved and no
+existing asset is marked verified at submission.
 
 This is simulated login, not authentication: all sample data remains in the
-browser and Farmer IDs are not secrets. It must not be used for real farmer data.
-Production login requires a backend identity service, verified credentials or
-SMS OTP, server-side sessions and authorization on every farmer record request.
+browser and Farmer IDs are not secrets. Online identity verification and external
+lender submission are not connected. Production login requires a backend identity
+service, verified credentials or SMS OTP, server-side sessions and authorization
+on every farmer record request. The portal states the local-storage limitation
+in its footer without interrupting the application flow.
