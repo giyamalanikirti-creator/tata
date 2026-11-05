@@ -2,11 +2,11 @@ import { createContext, useContext } from 'react';
 import type { Case, Role, State } from './model';
 
 export const QUEUE_LABEL: Record<Role, string> = {
-  mitra: 'Farmer cases', lender: 'Loan pipeline', installer: 'My jobs', verifier: 'Verification queue', state: 'Subsidy packs',
+  farmer: 'My journey', mitra: 'Farmer cases', lender: 'Loan pipeline', installer: 'My jobs', verifier: 'Verification queue', state: 'Subsidy packs',
 };
 
 
-export type Route = { page: 'overview' | 'queue' | 'case' | 'assess' | 'portfolio' | 'records' | 'thesis'; id?: string };
+export type Route = { page: 'overview' | 'queue' | 'case' | 'assess' | 'portfolio' | 'records' | 'thesis' | 'farmer'; id?: string };
 
 export type Store = {
   state: State; role: Role; route: Route;
@@ -26,7 +26,7 @@ export const useStore = () => {
 
 export function parseHash(h: string): Route {
   const [page, id] = h.replace(/^#\/?/, '').split('/');
-  const pages: Route['page'][] = ['overview', 'queue', 'case', 'assess', 'portfolio', 'records', 'thesis'];
+  const pages: Route['page'][] = ['overview', 'queue', 'case', 'assess', 'portfolio', 'records', 'thesis', 'farmer'];
   return pages.includes(page as Route['page']) ? { page: page as Route['page'], id: id ? decodeURIComponent(id) : undefined } : { page: 'overview' };
 }
 export const toHash = (r: Route) => '#/' + r.page + (r.id ? '/' + encodeURIComponent(r.id) : '');

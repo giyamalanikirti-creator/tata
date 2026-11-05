@@ -5,6 +5,7 @@ import { useStore, QUEUE_LABEL } from '../store';
 import { AssetIcon, Pill, Meter, Empty } from '../ui';
 
 const INTRO: Record<Role, string> = {
+  farmer: 'Your cases.',
   mitra: 'Every case you have filed on a farmer’s behalf, from the first assessment to her Resilience Record.',
   lender: 'Investment loans from Dhara Plans. You sanction; Dhara releases each tranche only against verified work.',
   installer: 'Jobs for Dhara-certified installers. Upload delivery and commissioning evidence to get paid faster.',

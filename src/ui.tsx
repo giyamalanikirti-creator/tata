@@ -56,7 +56,7 @@ export function DualChart({ labels, bars, barLabel, lines, yMax, yMin = 0, unit 
   labels: (string | number)[]; bars?: number[]; barLabel?: string; title: string;
   lines: { name: string; values: number[]; cls: string }[]; yMax: number; yMin?: number; unit?: string; height?: number;
 }) {
-  const W = 560, H = height, pl = 38, pr = 10, pt = 12, pb = 30;
+  const W = 560, H = height, pl = 38, pr = 22, pt = 12, pb = 30;
   const iw = W - pl - pr, ih = H - pt - pb;
   const x = (i: number) => pl + (labels.length === 1 ? iw / 2 : (i * iw) / (labels.length - 1));
   const y = (v: number) => pt + ih - ((v - yMin) / (yMax - yMin)) * ih;

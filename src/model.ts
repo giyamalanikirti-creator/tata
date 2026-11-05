@@ -1,7 +1,7 @@
 // Dhara data model: Verify-to-Finance (Proposition A) and the Resilience Record (Proposition B)
 // running on one verification engine. All people, farms, figures and records are illustrative.
 
-export type Role = 'mitra' | 'lender' | 'installer' | 'verifier' | 'state';
+export type Role = 'farmer' | 'mitra' | 'lender' | 'installer' | 'verifier' | 'state';
 export type Kind = 'finance' | 'record';
 export type AssetKey = 'drip' | 'pond' | 'solar' | 'sprinkler';
 export type Provenance = 'self' | 'installer' | 'verified' | 'remote';
@@ -13,28 +13,30 @@ export type Evidence = { id: string; label: string; detail: string; prov: Proven
 export type StepRecord = { state: StepState; at?: string; by?: string; note?: string };
 export type Share = { id: string; org: string; purpose: string; granted: string; expires: string; revoked?: string; viewed?: string };
 export type LogEvent = { at: string; who: string; text: string; tone?: 'money' | 'fail' | 'ok' };
+export type AccessRequest = { id: string; org: string; purpose: string; at: string; status: 'pending' | 'allowed' | 'declined' };
 
 export type Farmer = {
   id: string; name: string; agristack: string; village: string; district: string;
-  acres: number; crop: string; water: string; woman: boolean; tenant: boolean;
+  acres: number; crop: string; water: string; woman: boolean; tenant: boolean; phone?: string;
 };
 
 export type Case = {
   id: string; kind: Kind; farmerId: string; asset: AssetKey; units: number; installer: string;
   bridge: boolean; created: string; updated: string; builtYear?: number;
   steps: Record<string, StepRecord>; released: Partial<Record<Tranche, string>>;
-  evidence: Evidence[]; shares: Share[]; log: LogEvent[]; declined?: string; parent?: string;
+  evidence: Evidence[]; shares: Share[]; log: LogEvent[]; declined?: string; parent?: string; requests?: AccessRequest[];
 };
 
-export type State = { v: 2; farmers: Farmer[]; cases: Case[] };
+export type State = { v: 3; farmers: Farmer[]; cases: Case[] };
 
-export const KEY = 'dhara.v2';
+export const KEY = 'dhara.v3';
 export const today = () => new Date().toISOString().slice(0, 10);
 export const uid = (p = 'x') => p + Math.random().toString(36).slice(2, 8);
 
 /* ---------------- People in the demo ---------------- */
 
 export const ROLES: { id: Role; label: string; person: string; org: string; initials: string; blurb: string }[] = [
+  { id: 'farmer', label: 'Farmer', person: 'Farmer', org: 'Dhara Kisan app', initials: 'KI', blurb: 'Plans, finances and tracks her own resilience investment, and owns her record.' },
   { id: 'mitra', label: 'Dhara Mitra', person: 'Ramesh Kushwaha', org: 'Assisted partner · Kabrai', initials: 'RK', blurb: 'Runs the 20-minute assessment with the farmer and files cases on her behalf.' },
   { id: 'lender', label: 'Lender', person: 'Ananya Rao', org: 'Tata Capital · co-lending desk', initials: 'AR', blurb: 'Sanctions investment loans. Money moves only when Dhara verifies the work.' },
   { id: 'installer', label: 'Installer', person: 'Vikram Patel', org: 'Certified installer network', initials: 'VP', blurb: 'Delivers and fits the asset, uploads invoices and geotagged photos.' },
@@ -150,7 +152,7 @@ export function progress(c: Case) {
   return all.filter(s => st(c, s.key) === 'done').length / all.length;
 }
 
-const who = (r: Role | 'system') => r === 'system' ? 'Dhara' : `${roleOf(r)!.person} · ${roleOf(r)!.label}`;
+const who = (r: Role | 'system') => r === 'system' ? 'Dhara' : r === 'farmer' ? 'Farmer · Dhara Kisan app' : `${roleOf(r)!.person} · ${roleOf(r)!.label}`;
 
 export function log(c: Case, by: Role | 'system', text: string, tone?: LogEvent['tone'], at = today()) {
   c.log.unshift({ at, who: who(by), text, tone });
@@ -284,12 +286,12 @@ function walk(c: Case, script: [string, Role, string, string][]) {
 
 export function seed(): State {
   const farmers: Farmer[] = [
-    { id: 'sunita', name: 'Sunita Devi', agristack: 'UP-09-4471-2286', village: 'Kabrai', district: 'Mahoba', acres: 2, crop: 'Wheat, chickpea', water: 'Shared borewell', woman: true, tenant: false },
-    { id: 'mohan', name: 'Mohan Lal Yadav', agristack: 'UP-09-3318-0954', village: 'Mauranipur', district: 'Jhansi', acres: 3.5, crop: 'Groundnut, wheat', water: 'Open well', woman: false, tenant: false },
-    { id: 'geeta', name: 'Geeta Rajput', agristack: 'UP-09-5562-1170', village: 'Naraini', district: 'Banda', acres: 4, crop: 'Mustard, lentil', water: 'Diesel pump on canal', woman: true, tenant: false },
-    { id: 'rajesh', name: 'Rajesh Kushwaha', agristack: 'UP-09-2207-6631', village: 'Talbehat', district: 'Lalitpur', acres: 2.5, crop: 'Soybean, wheat', water: 'Borewell', woman: false, tenant: false },
-    { id: 'ramkali', name: 'Ramkali Ahirwar', agristack: 'UP-09-6115-4402', village: 'Charkhari', district: 'Mahoba', acres: 1.5, crop: 'Chickpea, barley', water: 'Farm pond (2022)', woman: true, tenant: true },
-    { id: 'pushpa', name: 'Pushpa Patel', agristack: 'UP-09-7783-3019', village: 'Rath', district: 'Hamirpur', acres: 3, crop: 'Wheat, pea', water: 'Farm pond (2021)', woman: true, tenant: false },
+    { id: 'sunita', name: 'Sunita Devi', agristack: 'UP-09-4471-2286', village: 'Kabrai', district: 'Mahoba', acres: 2, crop: 'Wheat, chickpea', water: 'Shared borewell', woman: true, tenant: false, phone: '9839041122' },
+    { id: 'mohan', name: 'Mohan Lal Yadav', agristack: 'UP-09-3318-0954', village: 'Mauranipur', district: 'Jhansi', acres: 3.5, crop: 'Groundnut, wheat', water: 'Open well', woman: false, tenant: false, phone: '9415520318' },
+    { id: 'geeta', name: 'Geeta Rajput', agristack: 'UP-09-5562-1170', village: 'Naraini', district: 'Banda', acres: 4, crop: 'Mustard, lentil', water: 'Diesel pump on canal', woman: true, tenant: false, phone: '9919463007' },
+    { id: 'rajesh', name: 'Rajesh Kushwaha', agristack: 'UP-09-2207-6631', village: 'Talbehat', district: 'Lalitpur', acres: 2.5, crop: 'Soybean, wheat', water: 'Borewell', woman: false, tenant: false, phone: '9450172284' },
+    { id: 'ramkali', name: 'Ramkali Ahirwar', agristack: 'UP-09-6115-4402', village: 'Charkhari', district: 'Mahoba', acres: 1.5, crop: 'Chickpea, barley', water: 'Farm pond (2022)', woman: true, tenant: true, phone: '9721306645' },
+    { id: 'pushpa', name: 'Pushpa Patel', agristack: 'UP-09-7783-3019', village: 'Rath', district: 'Hamirpur', acres: 3, crop: 'Wheat, pea', water: 'Farm pond (2021)', woman: true, tenant: false, phone: '9838817730' },
   ];
   const cases: Case[] = [
     walk(mk({ id: 'DH-1042', kind: 'finance', farmerId: 'sunita', asset: 'drip', units: 2, created: '2026-10-28' }), [['assess', 'mitra', 'Dhara Plan filed: drip on 2 acres, bridge requested', '2026-10-28']]),
@@ -343,7 +345,9 @@ export function seed(): State {
   log(rr, 'mitra', `Farmer consented to share the record with ${LENDER} for six months.`, undefined, '2026-10-02');
   const done = cases.find(c => c.id === 'DH-0987')!;
   done.shares.push({ id: 's2', org: 'Tata AIG (asset cover)', purpose: 'Asset insurance quote', granted: '2026-09-05', expires: '2027-03-05' });
-  return { v: 2, farmers, cases };
+  rr.requests = [{ id: 'q1', org: 'Tata AIG (asset cover)', purpose: 'Quote for pond and pump insurance', at: '2026-11-01', status: 'pending' }];
+  done.requests = [{ id: 'q2', org: LENDER, purpose: 'KCC limit review before rabi', at: '2026-11-02', status: 'pending' }];
+  return { v: 3, farmers, cases };
 }
 
 export function readState(): State {
@@ -351,7 +355,7 @@ export function readState(): State {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const s = JSON.parse(raw);
-      if (s && s.v === 2 && Array.isArray(s.farmers) && Array.isArray(s.cases) && s.cases.every((c: Case) => c && typeof c.id === 'string' && c.steps && Array.isArray(c.log))) return s;
+      if (s && s.v === 3 && Array.isArray(s.farmers) && Array.isArray(s.cases) && s.cases.every((c: Case) => c && typeof c.id === 'string' && c.steps && Array.isArray(c.log))) return s;
     }
   } catch { /* fall through to seed */ }
   return seed();

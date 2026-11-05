@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, X, Circle, Camera, Upload, FileText, Lock, Share2, Leaf, Banknote, Satellite, ShieldCheck, Sprout, Users, History, Paperclip, MapPin, AlertTriangle, Sparkles, Ban } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, X, Circle, Camera, Upload, FileText, Lock, Share2, Leaf, Banknote, Satellite, ShieldCheck, Sprout, Users, History, Paperclip, MapPin, AlertTriangle, Sparkles, Ban, Send, Clock, Wand2 } from 'lucide-react';
 import {
   FLOW, ROLES, ASSETS, LENDER, PARTNER_BANK, TERMS, PROV, st, stepDef, waitingOn, statusOf, farmerOf, caseTitle, plan, disbursement, trancheAmount,
   completeStep, failStep, reworkStep, activeSteps, isComplete, drySpell, history, inr, inrShort, fmtDate, installerName, uid, today, roleOf,
   type Case, type Role, type Attachment, type Tranche, type StepDef,
 } from '../model';
 import { useStore, QUEUE_LABEL } from '../store';
+import { scanFarm, photoCheck } from '../farmer/ai';
 import { AssetIcon, Pill, ProvChip, Modal, DualChart, TrancheBar, Empty } from '../ui';
 
 const T_LABEL: Record<Tranche, string> = { t1: 'Tranche 1', t2: 'Tranche 2', hold: 'Holdback' };
@@ -47,7 +48,7 @@ export default function CaseView({ id }: { id: string }) {
       </header>
 
       {locked
-        ? <div className="card locked"><Lock size={22} /><div><h2>Not shared with {LENDER}</h2><p>This Resilience Record belongs to {f.name}. You can see it only after she consents to share it with you. Ask the Dhara Mitra to request consent.</p></div></div>
+        ? <LockedRecord c={c} name={f.name} />
         : <>
           <NextBanner c={c} mine={mine} waiting={waiting} role={role} onSwitch={r => setRole(r)} />
           <div className="case-grid">
@@ -74,6 +75,26 @@ export default function CaseView({ id }: { id: string }) {
             </div>
           </div>
         </>}
+    </div>
+  );
+}
+
+function LockedRecord({ c, name }: { c: Case; name: string }) {
+  const { updateCase, toast } = useStore();
+  const req = (c.requests ?? []).find(r => r.org === LENDER && r.status === 'pending');
+  const declined = (c.requests ?? []).find(r => r.org === LENDER && r.status === 'declined');
+  return (
+    <div className="card locked">
+      <Lock size={22} />
+      <div>
+        <h2>Not shared with {LENDER}</h2>
+        <p>This Resilience Record belongs to {name}. You can see it only after she consents. Requests reach her in the Dhara Kisan app and she approves with an OTP.</p>
+        <div className="locked-a">
+          {req ? <span className="pill gold"><span className="dot" />Request sent {fmtDate(req.at)} · waiting for {name.split(' ')[0]}</span>
+            : <button className="btn primary sm" onClick={() => { updateCase(c.id, x => { x.requests = [...(x.requests ?? []), { id: uid('q'), org: LENDER, purpose: 'Limit review and next investment loan', at: today(), status: 'pending' }]; x.log.unshift({ at: today(), who: 'Ananya Rao · Lender', text: `${LENDER} requested access to the record.` }); x.updated = today(); }); toast(`Request sent to ${name}`); }}><Send size={14} />Request access</button>}
+          {declined && !req && <small className="muted">Her last answer was no ({fmtDate(declined.at)}).</small>}
+        </div>
+      </div>
     </div>
   );
 }
@@ -156,8 +177,16 @@ function Sanction({ c }: { c: Case }) {
   const [decline, setDecline] = useState(false);
   const [reason, setReason] = useState('');
   const items = ['Payback checked in the Dhara Plan', 'Loan sized to the farmer’s share only', `Installer is Dhara-certified (${installerName(c.installer)})`];
+  const { state } = useStore();
+  const scan = scanFarm(farmerOf(state, c));
+  const fit = scan.recs.find(r => r.asset === c.asset);
   return (
     <div>
+      <div className="ai-box">
+        <div className="ai-box-h"><Wand2 size={15} /><strong>AI credit summary</strong><span className="ai-tag">AI · demo · {Math.round(scan.confidence * 100)}%</span></div>
+        <p>{ASSETS[c.asset].name} ranks <strong>{scan.recs.indexOf(fit!) + 1} of 4</strong> for this plot (fit {fit?.score}/100). The field lost about {scan.dryLoss}% greenness in {scan.dryYears} dry years since 2017; {scan.groundwater.en.toLowerCase()}. Expected benefit covers the instalment <strong>{p.cover.toFixed(1)}×</strong>. No red flags in the plan; first repayment falls after the rabi harvest.</p>
+        <small>Explains the case; the decision stays with you.</small>
+      </div>
       <div className="terms-grid">
         <div><small>Investment loan (85% of share)</small><strong>{inr(p.loan)}</strong></div>
         <div><small>Farmer pays upfront</small><strong>{inr(p.own)}</strong></div>
@@ -258,6 +287,12 @@ function FieldCheck({ c, s }: { c: Case; s: StepDef }) {
   const release = s.release ? `${T_LABEL[s.release]} of ${inr(trancheAmount(c, s.release))}` : '';
   return (
     <div>
+      {(s.key === 'verifyDelivery' || s.key === 'fieldCheck' || s.key === 'assetCheck') && (() => { const pc = photoCheck(c.asset, c.id); return (
+        <div className="ai-box">
+          <div className="ai-box-h"><Wand2 size={15} /><strong>AI photo pre-check</strong><span className="ai-tag">AI · demo · {Math.round(pc.conf * 100)}%</span></div>
+          <ul>{pc.findings.map(x => <li key={x}><Check size={13} />{x}</li>)}<li><Check size={13} />{pc.geo}</li><li><Check size={13} />{pc.time}</li></ul>
+          <small>Flags what to look at. Your check is what releases money.</small>
+        </div>); })()}
       {!!toVerify.length && <div className="to-verify">{toVerify.map(e => <div key={e.id} className="mini-ev">{e.file?.type.startsWith('image') ? <img src={e.file.data} alt="" /> : <FileText size={18} />}<div><strong>{e.label}</strong><small>{e.detail}</small><ProvChip prov={e.prov} /></div></div>)}</div>}
       <label className="field">Method<select value={method} onChange={e => setMethod(e.target.value)}><option>Field visit</option><option>Document and geotag review</option><option>Video call with farmer</option></select></label>
       <fieldset className="checks"><legend>Checklist</legend>
@@ -443,6 +478,7 @@ function ConsentCard({ c }: { c: Case }) {
     <section className="card">
       <div className="card-head"><h2>Consent and sharing</h2><Lock size={16} className="muted-icon" /></div>
       <p className="muted">{f.name.split(' ')[0]} owns this record. Each share is specific, time-limited, logged and revocable (DPDP Act, 2023).</p>
+      {(c.requests ?? []).filter(r => r.status === 'pending').map(r => <div key={r.id} className="req-line"><Clock size={14} /><span><strong>{r.org}</strong> asked {fmtDate(r.at)} · waiting for {f.name.split(' ')[0]} in her app</span></div>)}
       {c.shares.length === 0 ? <p className="muted small">Not shared with anyone yet.</p> : (
         <ul className="shares">
           {c.shares.map(s => (

@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
-import { ArrowRight, ClipboardCheck, Landmark, Wrench, ShieldCheck, Building2, Satellite, ScrollText, Banknote, Repeat, Check, Minus } from 'lucide-react';
+import { ArrowRight, ClipboardCheck, Landmark, Wrench, ShieldCheck, Building2, Satellite, ScrollText, Banknote, Repeat, Check, Minus, Sprout, MessageCircle, CloudSun, Camera, Lock } from 'lucide-react';
 import { ROLES, ASSETS, waitingOn, isComplete, disbursement, trancheAmount, statusOf, farmerOf, caseTitle, inrShort, type Role } from '../model';
 import { useStore } from '../store';
 import { AssetIcon, Pill, TrancheBar } from '../ui';
 
 const ROLE_ICON: Record<Role, ReactNode> = {
+  farmer: <Sprout size={18} />,
   mitra: <ClipboardCheck size={18} />, lender: <Landmark size={18} />, installer: <Wrench size={18} />, verifier: <ShieldCheck size={18} />, state: <Building2 size={18} />,
 };
 
@@ -58,12 +59,27 @@ export default function Overview() {
         {feature && <FeatureCard id={feature.id} />}
       </section>
 
+      <section className="farmer-band">
+        <div className="fb-copy">
+          <span className="eyebrow light">For farmers · Dhara Kisan app</span>
+          <h2>Everything starts with her farm.</h2>
+          <p>Farmers log in with their AgriStack-linked mobile number, get an AI farm check from nine years of satellite history, see exactly what they would pay, and track every rupee until the asset works. In Hindi or English.</p>
+          <div className="fb-feats">
+            <span><Satellite size={15} />AI farm check</span><span><MessageCircle size={15} />Sahayak voice assistant</span><span><CloudSun size={15} />Weekly water advice</span><span><Camera size={15} />AI photo pre-check</span><span><Lock size={15} />Consent she controls</span>
+          </div>
+          <button className="btn light lg" onClick={() => setRole('farmer')}><Sprout size={17} />Open the farmer app<ArrowRight size={17} /></button>
+        </div>
+        <ol className="fb-steps">
+          {['Farm check', 'Loan approved', 'Installation', 'Checked, then paid', 'Subsidy released', 'Works through a dry spell', 'Resilience Record'].map((s, i) => <li key={s}><span>{i + 1}</span>{s}</li>)}
+        </ol>
+      </section>
+
       <section className="section">
         <div className="section-head">
           <div><h2>Who needs to act now</h2><p>Every party works the same case. Step into any role to move it forward.</p></div>
         </div>
         <div className="role-grid">
-          {ROLES.map(r => {
+          {ROLES.filter(r => r.id !== 'farmer').map(r => {
             const n = state.cases.filter(c => waitingOn(c).includes(r.id)).length;
             const mine = r.id === role;
             return (

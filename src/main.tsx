@@ -10,6 +10,7 @@ import Assess from './pages/Assess';
 import Portfolio from './pages/Portfolio';
 import Records from './pages/Records';
 import Thesis from './pages/Thesis';
+import FarmerApp from './farmer/FarmerApp';
 import './style.css';
 
 
@@ -41,7 +42,8 @@ function App() {
   const go = useCallback((r: Route) => { location.hash = toHash(r); setRoute(r); setNav(false); window.scrollTo({ top: 0 }); }, []);
   const update = useCallback((fn: (s: State) => void) => setState(s => { const n = structuredClone(s); fn(n); return n; }), []);
   const updateCase = useCallback((id: string, fn: (c: Case, s: State) => void) => update(s => { const c = s.cases.find(x => x.id === id); if (c) fn(c, s); }), [update]);
-  const setRole = useCallback((r: Role) => { setRoleRaw(r); setMsg(`Now acting as ${ROLES.find(x => x.id === r)!.label}`); }, []);
+  const setRole = useCallback((r: Role) => { setRoleRaw(r); setMsg(`Now acting as ${ROLES.find(x => x.id === r)!.label}`); if (r === 'farmer' && parseHash(location.hash).page !== 'farmer') { location.hash = toHash({ page: 'farmer', id: 'home' }); setRoute({ page: 'farmer', id: 'home' }); } }, []);
+  useEffect(() => { if (route.page === 'farmer' && role !== 'farmer') setRoleRaw('farmer'); else if (route.page !== 'farmer' && role === 'farmer') setRoleRaw('mitra'); }, [route.page, role]);
 
   const store: Store = useMemo(() => ({ state, role, route, setRole, go, update, updateCase, toast: setMsg }), [state, role, route, setRole, go, update, updateCase]);
   const me = ROLES.find(r => r.id === role)!;
@@ -69,6 +71,13 @@ function App() {
       default: return <Overview />;
     }
   })();
+
+  if (role === 'farmer') return (
+    <StoreCtx.Provider value={store}>
+      <FarmerApp />
+      {msg && <div className="toast farmer" role="status"><CheckCircle2 size={18} /><span>{msg}</span><button aria-label="Dismiss" onClick={() => setMsg('')}><X size={16} /></button></div>}
+    </StoreCtx.Provider>
+  );
 
   return (
     <StoreCtx.Provider value={store}>
