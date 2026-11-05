@@ -3,6 +3,7 @@ import { type State, KEY, caseTitle, statusOf, inr, fmtDate, activeSteps, roleOf
 import { Pill } from '../ui';
 import { released } from './Queue';
 import FarmerRequest from './FarmerRequest';
+import FarmAdvisor from './FarmAdvisor';
 
 const SESSION_KEY = KEY + '.farmer-session';
 
@@ -33,18 +34,19 @@ export default function FarmerPortal({ state, update, onExit }: { state: State; 
         <p>Apply for farm infrastructure, access financial support and build your Resilience Record.</p>
         <form onSubmit={e => {
           e.preventDefault();
-          const match = state.farmers.find(f => f.agristack.toUpperCase() === identity.trim().toUpperCase());
-          if (!match) { setError('Farmer ID not found. Check your ID or contact your Dhara Mitra.'); return; }
+          const match = state.farmers.find(f => f.id === identity);
+          if (!match) { setError('Choose your farm to continue.'); return; }
           try { sessionStorage.setItem(SESSION_KEY, match.id); } catch { /* memory session still works */ }
           setFarmerId(match.id); setSelected(''); setError('');
         }}>
-          <label className="field">Farmer ID<input required autoComplete="off" value={identity} onChange={e => { setIdentity(e.target.value); setError(''); }} placeholder="UP-09-4471-2286" aria-invalid={!!error} aria-describedby={error ? 'farmer-login-error' : undefined} /></label>
+          <label className="field">Your farm<select required value={identity} onChange={e => { setIdentity(e.target.value); setError(''); }}><option value="">Choose your farm</option>{state.farmers.map(f => <option key={f.id} value={f.id}>{f.name} · {f.village}</option>)}</select></label>
           {error && <p role="alert" id="farmer-login-error">{error}</p>}
           <button className="btn primary" type="submit">Log in to my farm</button>
         </form>
       </section> : <>
         <div className="page-head"><div><span className="eyebrow">My farm</span><h1>Welcome, {farmer.name}</h1><p>{farmer.village}, {farmer.district} · {farmer.acres} acres · {farmer.crop}</p></div></div>
         {notice && <div className="banner" role="status">{notice}</div>}
+        <FarmAdvisor key={farmer.id} farmer={farmer} cases={cases} onPlan={() => setRequest('finance')} />
         <section className="farmer-services" aria-label="Farmer services">
           <article className="card"><span className="eyebrow">Invest in your farm</span><h2>Water and energy infrastructure</h2><p>Drip irrigation, farm ponds, solar pumps and sprinklers. Compare costs and plan your investment.</p><button className="btn primary" onClick={() => { setRequest('finance'); setNotice(''); }}>Apply for infrastructure</button></article>
           <article className="card"><span className="eyebrow">Make it affordable</span><h2>Financial support</h2><p>Request an investment loan and subsidy bridge, with a clear view of your contribution and repayments.</p><button className="btn primary" onClick={() => { setRequest('finance'); setNotice(''); }}>Request financial support</button></article>

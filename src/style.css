@@ -703,3 +703,10 @@ main { flex: 1; width: 100%; max-width: 1320px; margin: 0 auto; padding: 32px 32
 .farmer-form-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .farmer-disclosure { color: var(--muted); font-size: 12px; line-height: 1.6; padding: 12px 0; }
 @media (max-width: 760px) { .farmer-services { grid-template-columns: 1fr; } .farmer-portal .wizard-foot { flex-wrap: wrap; gap: 12px; } }
+.farm-advisor { border: 1px solid #aac8b4; background: linear-gradient(135deg, #f1f7f1, var(--surface)); }
+.farm-advisor .eyebrow { display: inline-flex; align-items: center; gap: 6px; }
+.advisor-modes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.advisor-output { background: var(--surface); border-radius: 12px; padding: 16px 20px; margin: 12px 0 20px; }
+.advisor-output ul { padding-left: 18px; display: grid; gap: 12px; margin: 0; }
+.advisor-ai { white-space: pre-wrap; line-height: 1.7; }
+.farm-advisor .farmer-form-actions { margin-top: 16px; }

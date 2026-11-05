@@ -3,10 +3,8 @@ import { test, expect } from '@playwright/test';
 test('farmer login validates identity, scopes records, persists on reload and signs out', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Farmer login', exact: true }).click();
-  await page.getByLabel('Farmer ID').fill('unknown');
-  await page.getByRole('button', { name: 'Log in to my farm' }).click();
-  await expect(page.getByRole('alert')).toContainText('Farmer ID not found');
-  await page.getByLabel('Farmer ID', { exact: true }).fill('UP-09-6115-4402');
+  await expect(page.getByLabel('Farmer ID')).toHaveCount(0);
+  await page.getByLabel('Your farm').selectOption('ramkali');
   await page.getByRole('button', { name: 'Log in to my farm' }).click();
   await expect(page.getByRole('heading', { name: 'Welcome, Ramkali Ahirwar' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'View progress for RR-2021' })).toBeVisible();
@@ -19,7 +17,7 @@ test('farmer login validates identity, scopes records, persists on reload and si
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Farmer login' })).toBeVisible();
-  await page.getByLabel('Farmer ID', { exact: true }).fill('UP-09-4471-2286');
+  await page.getByLabel('Your farm').selectOption('sunita');
   await page.getByRole('button', { name: 'Log in to my farm' }).click();
   await expect(page.getByRole('heading', { name: 'Welcome, Sunita Devi' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'View progress for RR-2021' })).toHaveCount(0);
@@ -28,7 +26,7 @@ test('farmer login validates identity, scopes records, persists on reload and si
 test('farmer login and dashboard fit a mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/farmer');
-  await page.getByLabel('Farmer ID', { exact: true }).fill('UP-09-4471-2286');
+  await page.getByLabel('Your farm').selectOption('sunita');
   await page.getByRole('button', { name: 'Log in to my farm' }).click();
   await expect(page.getByRole('heading', { name: 'Welcome, Sunita Devi' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
@@ -36,7 +34,7 @@ test('farmer login and dashboard fit a mobile viewport', async ({ page }) => {
 
 test('farmer applies for infrastructure and requests record verification in the shared workflow', async ({ page }) => {
   await page.goto('/#/farmer');
-  await page.getByLabel('Farmer ID', { exact: true }).fill('UP-09-4471-2286');
+  await page.getByLabel('Your farm').selectOption('sunita');
   await page.getByRole('button', { name: 'Log in to my farm' }).click();
   await page.getByRole('button', { name: 'Apply for infrastructure' }).click();
   await page.getByLabel('Acres to cover').fill('3');
@@ -72,7 +70,7 @@ test('farmer applies for infrastructure and requests record verification in the 
 test('financial support request can be cancelled without creating an application', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/farmer');
-  await page.getByLabel('Farmer ID', { exact: true }).fill('UP-09-4471-2286');
+  await page.getByLabel('Your farm').selectOption('sunita');
   await page.getByRole('button', { name: 'Log in to my farm' }).click();
   await page.getByRole('button', { name: 'Request financial support', exact: true }).click();
   await page.getByRole('button', { name: /Solar pump/ }).click();

@@ -41,8 +41,8 @@ Everything is illustrative: people, farms, money, AgriStack IDs, IMD rainfall an
 
 ## Farmer portal
 
-Choose **Farmer login** in the sidebar or open `#/farmer`. Enter a Farmer ID
-(for example `UP-09-4471-2286` for Sunita Devi). Sessions survive reloads in the
+Choose **Farmer login** in the sidebar or open `#/farmer`. Choose your farm by name and village, then continue; no Farmer ID is needed.
+Sessions survive reloads in the
 same browser tab; sign out to switch profiles.
 
 Farmers can apply for drip irrigation, ponds, solar pumps and sprinklers; review
@@ -55,8 +55,34 @@ separate disconnected loan request. No loan is automatically approved and no
 existing asset is marked verified at submission.
 
 This is simulated login, not authentication: all sample data remains in the
-browser and Farmer IDs are not secrets. Online identity verification and external
+browser and the profile selector does not authenticate identity. Online identity verification and external
 lender submission are not connected. Production login requires a backend identity
 service, verified credentials or SMS OTP, server-side sessions and authorization
 on every farmer record request. The portal states the local-storage limitation
 in its footer without interrupting the application flow.
+
+## Farm assistant and live AI
+
+The farmer dashboard and investment request form include Plan, Recommend, Assess
+and Monitor tools. Local guidance responds to water/energy/budget priorities,
+upfront budget, selected infrastructure, catalogue costs and existing case stages.
+It does not claim to measure farm conditions or make verification/lending decisions.
+
+For live AI on Vercel, configure `AI_API_KEY` securely in the project's environment
+variables (an OpenAI API credential), then redeploy. Optionally set `AI_MODEL`
+(default `gpt-4.1-mini`). The serverless endpoint is `api/advisor.mjs`; the key
+stays on the server and must never use a `VITE_` prefix. No client-side key is needed.
+The AI endpoint is not available in plain `npm run dev`; use Vercel's development
+runtime with server environment variables to exercise the live endpoint locally.
+
+AI requests require explicit sharing consent. Only farm size, crops, water source,
+budget, catalogue estimates and case stages are sent; names, Farmer IDs, attachments
+and application notes are excluded. Results are labelled AI guidance. Missing
+configuration, provider failures and timeouts fall back to labelled local guidance.
+Changing inputs invalidates prior AI results. There are no live weather or satellite
+feeds. Authentication and production abuse controls are still needed before exposing
+this prototype's AI endpoint broadly.
+
+Validation: `npm run build`, `npm test`, and
+`node --test server-tests/advisor.test.mjs`. Browser/API tests mock the AI response;
+a successful real-provider call requires a configured credential and deployed runtime.

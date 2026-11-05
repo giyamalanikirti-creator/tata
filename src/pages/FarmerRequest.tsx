@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ASSETS, INSTALLERS, LENDER, TERMS, advance, plan, inr, today, uid, type AssetKey, type Case, type Farmer, type State } from '../model';
 import { AssetIcon } from '../ui';
+import FarmAdvisor from './FarmAdvisor';
 
 export default function FarmerRequest({ farmer, mode, cases, update, onCancel, onSubmitted }: {
   farmer: Farmer; mode: 'finance' | 'record'; cases: Case[]; update: (fn: (s: State) => void) => void;
@@ -54,6 +55,7 @@ export default function FarmerRequest({ farmer, mode, cases, update, onCancel, o
     <span className="eyebrow">{review ? 'Review your request' : 'Start a request'} · {farmer.name}</span>
     <h2 ref={heading} tabIndex={-1}>{mode === 'finance' ? 'Your farm investment plan' : 'Verify infrastructure you already own'}</h2>
     <p>{mode === 'finance' ? 'Choose what your farm needs. Review the costs, subsidy and repayment estimate before applying.' : 'Tell us about your existing asset. A field verifier checks it before a Resilience Record can be issued.'}</p>
+    <FarmAdvisor farmer={farmer} cases={cases.filter(c => c.farmerId === farmer.id)} selected={asset} units={quantity} />
     <form onSubmit={e => { e.preventDefault(); if (!valid || (mode === 'record' && !yearValid)) { setError('Check the acreage and year before continuing.'); return; } setError(''); if (review) submit(); else setReview(true); }}>
       {!review ? <>
         <div className="asset-grid" aria-label="Infrastructure options">{(Object.keys(ASSETS) as AssetKey[]).map(key => <button type="button" key={key} className={'asset-card' + (asset === key ? ' on' : '')} aria-pressed={asset === key} onClick={() => { setAsset(key); setConsent(false); }}>
