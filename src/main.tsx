@@ -10,6 +10,7 @@ import Assess from './pages/Assess';
 import Portfolio from './pages/Portfolio';
 import Records from './pages/Records';
 import Thesis from './pages/Thesis';
+import FarmerPortal from './pages/FarmerPortal';
 import './style.css';
 
 
@@ -32,10 +33,11 @@ function App() {
   const [route, setRoute] = useState<Route>(() => parseHash(location.hash));
   const [msg, setMsg] = useState('');
   const [nav, setNav] = useState(false);
+  const [farmerPortal, setFarmerPortal] = useState(() => location.hash === '#/farmer');
 
   useEffect(() => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { setMsg('Browser storage is full. Remove attachments before saving more changes.'); } }, [state]);
   useEffect(() => { try { localStorage.setItem(KEY + '.role', role); } catch { /* ignore */ } }, [role]);
-  useEffect(() => { const f = () => setRoute(parseHash(location.hash)); addEventListener('hashchange', f); return () => removeEventListener('hashchange', f); }, []);
+  useEffect(() => { const f = () => { setFarmerPortal(location.hash === '#/farmer'); setRoute(parseHash(location.hash)); }; addEventListener('hashchange', f); return () => removeEventListener('hashchange', f); }, []);
   useEffect(() => { if (msg) { const t = setTimeout(() => setMsg(''), 5000); return () => clearTimeout(t); } }, [msg]);
 
   const go = useCallback((r: Route) => { location.hash = toHash(r); setRoute(r); setNav(false); window.scrollTo({ top: 0 }); }, []);
@@ -70,6 +72,8 @@ function App() {
     }
   })();
 
+  if (farmerPortal) return <FarmerPortal state={state} onExit={() => { setFarmerPortal(false); go({ page: 'overview' }); }} />;
+
   return (
     <StoreCtx.Provider value={store}>
       <div className="app">
@@ -90,6 +94,7 @@ function App() {
             </select>
           </label>
           <nav>
+            <button className="nav-item" onClick={() => { location.hash = '#/farmer'; setFarmerPortal(true); setNav(false); }}><Home size={18} /><span>Farmer login</span></button>
             {items.filter(i => i.show).map(i => (
               <button key={i.page} className={'nav-item' + (current === i.page ? ' active' : '')} aria-current={current === i.page ? 'page' : undefined} onClick={() => go({ page: i.page })}>
                 {i.icon}<span>{i.label}</span>{!!i.count && <span className="nav-count" aria-label={`${i.count} need your action`}>{i.count}</span>}

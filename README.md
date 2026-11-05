@@ -38,3 +38,15 @@ Tests use Playwright and a system Chromium if one exists (`/opt/pw-browsers/chro
 ## Scope
 
 Everything is illustrative: people, farms, money, AgriStack IDs, IMD rainfall and satellite readings are simulated, and pilot-to-date gate values are placeholders. Investment-case figures come from the thesis base case. Data lives in this browser's localStorage; **Reset demo** restores the sample cases. Attachments are limited to JPG, PNG, WebP or PDF up to 500 KB. No backend, authentication or real financial service is involved.
+
+## Farmer portal
+
+Choose **Farmer login** in the sidebar or open `#/farmer`. Select a sample farmer
+(or enter the displayed demo Farmer ID) to view that farmer's applications,
+installer payments, progress history and record-sharing status. Sign out to
+switch profiles. The demo session survives reloads in the same browser tab.
+
+This is simulated login, not authentication: all sample data remains in the
+browser and Farmer IDs are not secrets. It must not be used for real farmer data.
+Production login requires a backend identity service, verified credentials or
+SMS OTP, server-side sessions and authorization on every farmer record request.

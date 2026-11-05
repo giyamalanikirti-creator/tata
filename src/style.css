@@ -684,3 +684,14 @@ main { flex: 1; width: 100%; max-width: 1320px; margin: 0 auto; padding: 32px 32
   .shell { margin: 0; }
   .card { box-shadow: none; break-inside: avoid; }
 }
+
+/* Farmer self-service demo */
+.farmer-portal { min-height: 100vh; }
+.farmer-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px clamp(16px, 5vw, 64px); border-bottom: 1px solid var(--line); background: var(--surface); }
+.farmer-portal > main { padding: 32px 16px; }
+.farmer-login { width: 100%; max-width: 520px; margin: 24px auto; }
+.farmer-notice { padding: 14px 16px; border-radius: 10px; background: var(--brand-soft); line-height: 1.6; }
+.farmer-progress { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 16px; }
+.farmer-progress ol, .farmer-progress ul { padding-left: 22px; }
+.farmer-progress li { margin: 12px 0; overflow-wrap: anywhere; }
+.farmer-progress p { margin: 4px 0; }
