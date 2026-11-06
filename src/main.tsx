@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Home, Inbox, PlusCircle, LineChart, ScrollText, Landmark, RotateCcw, Menu, X, CheckCircle2, ChevronsUpDown, MapPin } from 'lucide-react';
+import { Sprout, Home, Inbox, PlusCircle, LineChart, ScrollText, Landmark, RotateCcw, Menu, X, CheckCircle2, ChevronsUpDown, MapPin } from 'lucide-react';
 import { KEY, ROLES, readState, seed, waitingOn, type Role, type State, type Case } from './model';
 import { StoreCtx, parseHash, toHash, QUEUE_LABEL, type Route, type Store } from './store';
 import Overview from './pages/Overview';
@@ -27,7 +27,9 @@ function Logo() {
 function App() {
   const [state, setState] = useState<State>(readState);
   const [role, setRoleRaw] = useState<Role>(() => {
-    try { const r = localStorage.getItem(KEY + '.role') as Role; if (ROLES.some(x => x.id === r)) return r; } catch { /* ignore */ }
+    // The bare link opens the farmer app; partner links open the partner portal.
+    if (parseHash(location.hash).page === 'farmer') return 'farmer';
+    try { const r = localStorage.getItem(KEY + '.role') as Role; if (ROLES.some(x => x.id === r) && r !== 'farmer') return r; } catch { /* ignore */ }
     return 'mitra';
   });
   const [route, setRoute] = useState<Route>(() => parseHash(location.hash));
@@ -98,6 +100,7 @@ function App() {
               {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
             </select>
           </label>
+          <button className="to-farmer" onClick={() => setRole('farmer')}><Sprout size={16} /><span>Back to the farmer app</span></button>
           <nav>
             {items.filter(i => i.show).map(i => (
               <button key={i.page} className={'nav-item' + (current === i.page ? ' active' : '')} aria-current={current === i.page ? 'page' : undefined} onClick={() => go({ page: i.page })}>

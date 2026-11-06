@@ -5,18 +5,21 @@ Dhara verifies a small farmer's climate-resilience investment (drip, a farm pond
 - **A · Verify-to-Finance (lead).** Assess → sanction → install → verify and release → subsidy → monitor. Tranche 1 (50%) is released on verified delivery, tranche 2 (35%) after an independent field check, and a 15% holdback after Sentinel-2/Sentinel-1 confirm use through the first dry spell. A failed check sends the installer back before the next payment.
 - **B · Resilience Record (the on-ramp).** Verify an asset the farmer already built, read its dry-spell history back to 2017, and share it with lenders on specific, revocable consent (₹500 per record). An issued record leads straight into a Dhara Plan for the next asset.
 
-## The farmer app (Dhara Kisan)
+## The farmer app (Dhara Kisan) is the default screen
 
-Open it from **Open the farmer app** on the overview, choose **Farmer** in the role switcher, or go to `#/farmer/home`.
+The bare link opens the farmer app. Pick a demo farmer (Kamla Devi starts from scratch), or log in with a mobile number and OTP (demo code `2468`). The partner portal for lenders, verifiers, installers and the state is one click away at the bottom of every farmer page, or at `#/overview`.
 
-- **Login** with an AgriStack-linked mobile number and OTP (demo code `2468`), or pick one of six demo farmers at different stages. A new number goes through sign-up, with a simulated AgriStack fetch.
-- **Home**: plain-language status of her investment, what she pays and when, consent requests to allow or decline, a weekly AI water advisory from the forecast, and updates.
-- **My journey**: the seven steps from farm check to Resilience Record, with dates, and how the installer is paid in three parts only after each check.
-- **Plan**: an AI farm check (simulated Sentinel-2/IMD/groundwater read, plot map, ranked recommendations with fit scores and reasons), then a Dhara Plan with a plain-language explanation, and OTP consent to send it to the lender. "I already have one" requests a Resilience Record with an AI photo pre-check.
-- **Sahayak AI**: an assistant that answers from her own farm, plan and loan, in Hindi or English, by text or a simulated voice note, and cites what each answer is based on.
-- **My record**: her verified facts with provenance labels, dry-spell charts, who can see it, sharing and revoking with OTP.
+Dhara helps the farmer in three stages, and **Dhara AI** helps in each one. Every AI output sits in a purple "Dhara AI · Demo response" panel and says what it is based on; white cards are facts and actions (loan terms, payments, checks by people, consent) that AI never changes; dashed boxes are demo controls.
 
-Everything is available in English and Hindi. The AI outputs are deterministic, rule-based demos; no model or real data source is called.
+| Stage | What the farmer does | Where Dhara AI helps (demo responses) |
+| --- | --- | --- |
+| **1 · Plan** | Reviews her farm profile, chooses an asset, acres, installer and subsidy bridge | AI farm check (satellite history, rainfall, groundwater, plot map); ranked recommendations with fit scores and reasons; a what-if of a dry year and six years of cash |
+| **2 · Finance** | Sees her loan offer, adds two document photos, consents by OTP, then tracks installation and installer payments | Loan explained in plain words (read aloud); affordability check against household cash flow; document reading matched to AgriStack; "what is happening now" with typical times and tips; checks on installer photos |
+| **3 · Record** | Opens her Resilience Record, shares or stops access, answers lender requests, or records an asset she already has | Resilience score with its parts; the summary a lender will read (Hindi or English); suggested uses (KCC limit, insurance, next asset); photo pre-check for existing assets |
+
+Also: **Ask Dhara AI** (chat with stage-grouped questions, simulated voice, Hindi/English), a weekly water advisory on Home, and a **Simulate next step** demo control that plays the lender, installer, checker and state so the whole journey can be shown from the farmer's side.
+
+All AI here is deterministic and rule-based over the demo data. No model or real data source is called.
 
 ## Roles
 

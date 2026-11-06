@@ -6,6 +6,7 @@ import {
   type Case, type Role, type Attachment, type Tranche, type StepDef,
 } from '../model';
 import { useStore, QUEUE_LABEL } from '../store';
+import { fakePhoto } from '../model';
 import { scanFarm, photoCheck } from '../farmer/ai';
 import { AssetIcon, Pill, ProvChip, Modal, DualChart, TrancheBar, Empty } from '../ui';
 
@@ -208,10 +209,6 @@ function Sanction({ c }: { c: Case }) {
   );
 }
 
-function fakePhoto(label: string, geo: string, at: string) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220"><defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe3ea"/><stop offset="1" stop-color="#f4ead2"/></linearGradient></defs><rect width="320" height="220" fill="url(#s)"/><path d="M0 120 Q80 100 160 118 T320 112 V220 H0Z" fill="#b9c98f"/><path d="M0 150 Q90 132 170 150 T320 146 V220 H0Z" fill="#8fae6a"/>${[0, 1, 2, 3, 4, 5].map(i => `<line x1="${20 + i * 50}" y1="220" x2="${120 + i * 14}" y2="132" stroke="#3f6b45" stroke-width="2.5"/>`).join('')}<circle cx="262" cy="46" r="20" fill="#f6c76b"/><rect x="0" y="182" width="320" height="38" fill="#0b2a20cc"/><text x="10" y="198" font-family="monospace" font-size="11" fill="#fff">${label}</text><text x="10" y="212" font-family="monospace" font-size="10" fill="#c8e6d4">${geo} · ${at}</text></svg>`;
-  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-}
 
 function useUpload() {
   const [files, setFiles] = useState<Attachment[]>([]);

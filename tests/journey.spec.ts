@@ -4,7 +4,7 @@ const actAs = (page: Page, role: 'mitra' | 'lender' | 'installer' | 'verifier' |
 const action = (page: Page) => page.locator('.card.action');
 
 test('Verify-to-Finance: assessment, sanction, tranche-gated installation, rework, subsidy and holdback', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/#/overview');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Release money only against proven work');
 
   // Dhara Mitra files a Dhara Plan
@@ -105,7 +105,7 @@ test('Resilience Record: verify, share on consent, lender access and revocation'
 
 test('mobile layout, navigation and malformed storage', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.addInitScript(() => localStorage.setItem('dhara.v3', '{broken'));
+  await page.addInitScript(() => localStorage.setItem('dhara.v4', '{broken'));
   for (const hash of ['#/overview', '#/queue', '#/case/DH-1024', '#/assess', '#/thesis', '#/records']) {
     await page.goto('/' + hash);
     await expect(page.locator('main')).toBeVisible();
@@ -117,8 +117,10 @@ test('mobile layout, navigation and malformed storage', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toContainText('₹207 crore');
 });
 
-test('farmer: sign up with OTP, AI farm check, file a plan the lender can see', async ({ page }) => {
-  await page.goto('/#/farmer/home');
+test('farmer: sign up, AI plan, apply with AI document and affordability checks; lender sees it', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Welcome to Dhara' })).toBeVisible();
+  await page.getByRole('button', { name: 'Log in with mobile number' }).click();
   await page.getByLabel('Mobile number').fill('9000012345');
   await page.getByRole('button', { name: 'Send OTP' }).click();
   await page.getByLabel('Enter OTP').fill('1111');
@@ -126,49 +128,78 @@ test('farmer: sign up with OTP, AI farm check, file a plan the lender can see', 
   await expect(page.getByRole('alert')).toBeVisible();
   await page.getByLabel('Enter OTP').fill('2468');
   await page.getByRole('button', { name: 'Verify and continue' }).click();
-  await page.getByLabel('Your name').fill('Kamla Devi');
+  await page.getByLabel('Your name').fill('Savitri Devi');
   await page.getByRole('button', { name: 'Fetch from AgriStack' }).click();
   await expect(page.getByLabel('Village')).toHaveValue('Kulpahar');
   await page.getByRole('button', { name: 'Create my account' }).click();
 
+  await expect(page.getByRole('heading', { name: 'Plan: what should you build?' })).toBeVisible();
   await page.getByRole('button', { name: 'Run AI farm check' }).click();
-  await expect(page.getByRole('heading', { name: 'Recommended for your farm' })).toBeVisible({ timeout: 8000 });
+  await expect(page.getByRole('region', { name: 'Dhara AI: AI recommendations for your farm' })).toBeVisible({ timeout: 8000 });
   await expect(page.locator('.fa-rec').first()).toContainText('Best fit');
-  await page.getByRole('button', { name: /Continue with/ }).click();
-  await expect(page.locator('.fa-explain')).toContainText('three parts');
+  await expect(page.getByRole('region', { name: /Dhara AI: What if you build/ })).toContainText('better off by year 6');
+  await page.getByRole('button', { name: 'Continue to Finance' }).click();
+
+  await expect(page.getByRole('region', { name: 'Dhara AI: Your loan in simple words' })).toContainText('three parts');
+  await page.getByLabel('Household income').selectOption('100000');
+  await page.getByLabel('Other loan payments').selectOption('50000');
+  await expect(page.locator('.verdict')).toContainText('Stretched');
+  const send = page.getByRole('button', { name: 'Send to Tata Capital' });
   await page.getByLabel('Confirm with OTP').fill('2468');
-  await page.getByRole('button', { name: 'Send to Tata Capital' }).click();
-  await expect(page.getByRole('status')).toContainText('Plan sent to Tata Capital');
+  await expect(send).toBeDisabled();
+  await page.getByRole('button', { name: 'Add photo' }).first().click();
+  await page.getByRole('button', { name: 'Add photo' }).first().click();
+  await expect(page.locator('.doc-fields')).toHaveCount(2);
+  await expect(page.locator('.doc-fields').first()).toContainText('Matches AgriStack');
+  await send.click();
+  await expect(page.getByRole('status')).toContainText('Application sent to Tata Capital');
   await expect(page.locator('.fa-status')).toContainText('Your plan is with the lender');
 
   await page.getByLabel('Demo role').selectOption('lender');
-  await expect(page.getByRole('row').filter({ hasText: 'Kamla Devi' })).toContainText('Sanction');
+  await expect(page.getByRole('row').filter({ hasText: 'Savitri Devi' })).toContainText('Sanction');
 });
 
-test('farmer: consent request, record sharing, Sahayak and Hindi', async ({ page }) => {
-  await page.goto('/#/farmer/home');
-  await page.getByRole('button', { name: /Pushpa Patel/ }).click();
-  await page.getByLabel('Enter OTP').fill('2468');
-  await page.getByRole('button', { name: 'Verify and continue' }).click();
+test('farmer: demo walk from Plan through Finance to a Record, then share and ask AI', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Start as Kamla Devi/ }).click();
+  await expect(page.locator('.stage-card')).toHaveCount(3);
+  await page.locator('.stage-card').first().getByRole('button').click();
+  await page.getByRole('button', { name: 'Run AI farm check' }).click();
+  await page.getByRole('button', { name: 'Continue to Finance' }).click({ timeout: 8000 });
+  await page.getByRole('button', { name: 'Add photo' }).first().click();
+  await page.getByRole('button', { name: 'Add photo' }).first().click();
+  await page.getByLabel('Confirm with OTP').fill('2468');
+  await page.getByRole('button', { name: 'Send to Tata Capital' }).click({ timeout: 5000 });
+  const next = page.getByRole('button', { name: 'Simulate next step' });
+  for (let i = 0; i < 10 && await next.count(); i++) await next.click();
+  await expect(page.locator('.fa-status')).toContainText('working and verified');
+  await page.getByRole('button', { name: 'See your Resilience Record' }).click();
 
+  await expect(page.getByRole('region', { name: 'Dhara AI: Resilience score' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Dhara AI: What a lender will read' })).toContainText('Kamla Devi');
+  await page.locator('.use').filter({ hasText: 'Higher KCC limit' }).getByRole('button', { name: 'Share' }).click();
+  await page.getByLabel('Confirm with OTP').fill('2468');
+  await page.getByRole('button', { name: 'Share', exact: true }).last().click();
+  await expect(page.locator('.who-list')).toContainText('Tata Capital');
+
+  await page.locator('.fa-tabs').getByRole('button', { name: /Ask AI/ }).click();
+  await page.getByRole('button', { name: 'What is my score?' }).click();
+  await expect(page.locator('.fa-msg.ai').last()).toContainText('out of 100');
+});
+
+test('farmer: consent request, revoke and Hindi', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Pushpa Patel/ }).click();
   await expect(page.locator('.fa-req')).toContainText('Tata AIG (asset cover) wants to see your record');
   await page.locator('.fa-req').getByRole('button', { name: 'Allow' }).click();
   await page.getByLabel('Confirm with OTP').fill('2468');
   await page.getByRole('button', { name: 'Allow for 6 months' }).click();
-  await page.locator('.fa-tabs').getByRole('button', { name: 'My record' }).click();
-  await expect(page.locator('.fa-who')).toContainText('Tata AIG (asset cover)');
-  await page.locator('.fa-who li').filter({ hasText: 'Tata AIG' }).getByRole('button', { name: 'Stop' }).click();
-  await expect(page.locator('.fa-who')).not.toContainText('Tata AIG');
-
-  await page.locator('.fa-tabs').getByRole('button', { name: 'Sahayak AI' }).click();
-  await page.getByRole('button', { name: 'What suits my farm?' }).click();
-  await expect(page.locator('.fa-msg.ai').last()).toContainText('fits best');
-  await page.getByLabel('Ask Sahayak').fill('Who can see my record?');
-  await page.getByRole('button', { name: 'Send' }).click();
-  await expect(page.locator('.fa-msg.ai').last()).toContainText('Tata Capital');
-
-  await page.getByRole('button', { name: 'हिं' }).click();
-  await page.locator('.fa-tabs').getByRole('button', { name: 'होम' }).click();
+  await page.locator('.fa-tabs').getByRole('button', { name: /Record$/ }).click();
+  await expect(page.locator('.who-list')).toContainText('Tata AIG (asset cover)');
+  await page.locator('.who-list li').filter({ hasText: 'Tata AIG' }).getByRole('button', { name: 'Stop' }).click();
+  await expect(page.locator('.who-list')).not.toContainText('Tata AIG');
+  await page.getByRole('button', { name: 'हिं', exact: true }).click();
+  await page.locator('.fa-tabs').getByRole('button', { name: /होम/ }).click();
   await expect(page.locator('.fa-hello h1')).toContainText('नमस्ते');
 });
 

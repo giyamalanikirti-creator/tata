@@ -1,6 +1,6 @@
 // Illustrative "AI" outputs for the farmer app. Deterministic, rule-based and seeded per farmer,
 // so the demo is repeatable. Nothing here calls a model or a real data source.
-import { ASSETS, plan, inr, st, isComplete, trancheAmount, installerName, fmtDate, type AssetKey, type Case, type Farmer } from '../model';
+import { ASSETS, plan, inr, st, isComplete, trancheAmount, installerName, fmtDate, history, type AssetKey, type Case, type Farmer } from '../model';
 
 export type Lang = 'en' | 'hi';
 export const tr = (lang: Lang) => (en: string, hi: string) => (lang === 'hi' ? hi : en);
@@ -176,6 +176,20 @@ export function answer(q: string, { f, cases, lang }: Ctx): Reply {
   const s = q.toLowerCase();
   const fin = cases.find(c => c.kind === 'finance' && !c.declined);
   const has = (...w: string[]) => w.some(x => s.includes(x));
+  if (has('document', 'paper', 'कागज़', 'कागज', 'दस्तावेज़')) {
+    return { text: t('Just two photos: your land record (Khatauni) and the first page of your bank passbook. Dhara AI reads them and matches your name and land area to AgriStack, so you do not fill any forms. Tenants apply through an FPO group instead of a land record.', 'सिर्फ़ दो फ़ोटो: आपकी खतौनी और बैंक पासबुक का पहला पन्ना। धारा AI इन्हें पढ़कर नाम और ज़मीन एग्रीस्टैक से मिलाता है, कोई फ़ॉर्म नहीं। किरायेदार FPO समूह से आवेदन करते हैं।'), card: [{ label: t('Land record', 'खतौनी'), value: t('Photo', 'फ़ोटो') }, { label: t('Bank passbook', 'बैंक पासबुक'), value: t('Photo', 'फ़ोटो') }], sources: ['Dhara application checklist'] };
+  }
+  if (has('how long', 'days', 'कितने दिन', 'समय')) {
+    const live = cases.find(c => c.kind === 'finance' && !c.declined && !isComplete(c));
+    const a = live ? Object.keys(live.steps).find(k => live.steps[k].state === 'active' || live.steps[k].state === 'failed') : undefined;
+    return { text: live && a ? t(`Right now: ${plainStatus(live, lang).title.toLowerCase()}. This step usually takes ${eta(a, lang)}. From approval to a working system is usually 4–6 weeks.`, `अभी: ${plainStatus(live, lang).title}। यह कदम आमतौर पर ${eta(a, lang)} लेता है। मंज़ूरी से चालू सिस्टम तक आमतौर पर 4–6 हफ़्ते।`) : t('From applying to a working system usually takes 4–6 weeks: about 3 days for approval, 2–3 weeks to install and check, then the subsidy within a month.', 'आवेदन से चालू सिस्टम तक आमतौर पर 4–6 हफ़्ते: मंज़ूरी 3 दिन, फ़िटिंग और जाँच 2–3 हफ़्ते, फिर एक महीने में सब्सिडी।'), sources: ['Typical times in your district'] };
+  }
+  if (has('score', 'स्कोर')) {
+    const rec = cases.find(c => isComplete(c));
+    if (!rec) return { text: t('You get a resilience score once your first asset is verified. It looks at four things: field check, how your field held up in dry spells, satellite-confirmed use, and upkeep and repayment.', 'पहला ढाँचा प्रमाणित होते ही स्कोर मिलता है। चार बातें: खेत जाँच, सूखे में खेत, सैटेलाइट से उपयोग, और रखरखाव व भुगतान।'), sources: ['How the score works'] };
+    const sc = resilienceScore(rec);
+    return { text: t(`Your record scores ${sc.total} out of 100 (${sc.band.toLowerCase()}). The biggest part is that your field held up better than neighbouring fields in dry years.`, `आपका रिकॉर्ड ${sc.total}/100 है। सबसे बड़ा कारण: सूखे सालों में आपका खेत पड़ोसी खेतों से बेहतर रहा।`), card: sc.parts.map(p => ({ label: lang === 'hi' ? p.hi : p.en, value: `${p.v}/${p.max}` })), sources: ['Your Resilience Record'] };
+  }
   if (has('suit', 'best', 'which', 'recommend', 'सही', 'क्या लगवा', 'कौन सा')) {
     const scan = scanFarm(f); const owned = new Set(cases.filter(c => !c.declined).map(c => c.asset)); const top = scan.recs.find(r => !owned.has(r.asset)) ?? scan.recs[0]; const p = plan(top.asset, top.units);
     return {
@@ -229,4 +243,109 @@ export function answer(q: string, { f, cases, lang }: Ctx): Reply {
     return { text: `${ps.title}. ${ps.next}`, card: (['t1', 't2', 'hold'] as const).map((x, i) => ({ label: t(`Installer payment ${i + 1}`, `इंस्टॉलर भुगतान ${i + 1}`), value: fin.released[x] ? t('Paid', 'दिया') : t(`Held · ${inr(trancheAmount(fin, x))}`, `रुका · ${inr(trancheAmount(fin, x))}`) })), sources: ['Your case timeline'] };
   }
   return { text: t('I can help with what to build, what you will pay, subsidy, irrigation this week, insurance and who can see your record. Try one of the questions below.', 'मैं बता सकती हूँ: क्या लगवाएँ, कितना देना होगा, सब्सिडी, इस हफ़्ते सिंचाई, बीमा, और रिकॉर्ड कौन देख सकता है। नीचे का कोई सवाल चुनें।'), sources: [] };
+}
+
+/* ======================= Stage-specific AI demos ======================= */
+
+/** PLAN · what-if: a dry year with and without the asset, and six years of cash. */
+export function whatIf(f: Farmer, asset: AssetKey, units: number) {
+  const r = rng(f.id + asset + 'wi');
+  const p = plan(asset, units);
+  const lossWithout = Math.round(30 + r() * 12);
+  const lossWith = Math.round(lossWithout * (asset === 'pond' ? 0.45 : asset === 'solar' ? 0.55 : asset === 'drip' ? 0.35 : 0.6));
+  const water = asset === 'drip' ? 42 : asset === 'sprinkler' ? 28 : asset === 'pond' ? -0 : 0;
+  const diesel = asset === 'solar' ? Math.round(24000 + r() * 6000) : 0;
+  let cum = -p.own;
+  const cash = [{ y: 'Now', v: cum }];
+  for (let y = 1; y <= 6; y++) { cum += p.benefit - (y <= 5 ? p.instalment : 0); cash.push({ y: 'Y' + y, v: Math.round(cum) }); }
+  const breakeven = cash.findIndex(c => c.v >= 0);
+  return { lossWithout, lossWith, water, diesel, cash, breakeven, net6: cash[6].v, p };
+}
+
+/** FINANCE · affordability against household cash flow. */
+export function affordability(instalment: number, income: number, otherYearly: number) {
+  const surplus = income * 0.22 - otherYearly;
+  const share = surplus > 0 ? instalment / surplus : 9;
+  const verdict = share <= 0.5 ? 'comfortable' : share <= 0.9 ? 'manageable' : 'stretched';
+  const months = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
+  const inflow = months.map((m) => (m === 'Oct' || m === 'Nov' ? income * 0.22 : m === 'Mar' || m === 'Apr' ? income * 0.26 : income * 0.004 * 10));
+  return { surplus: Math.max(0, Math.round(surplus)), share, verdict: verdict as 'comfortable' | 'manageable' | 'stretched', months, inflow: inflow.map(Math.round), dueMonth: 'Apr' };
+}
+
+/** FINANCE · reading an uploaded document. */
+export function docCheck(f: Farmer, doc: 'land' | 'bank') {
+  const r = rng(f.id + doc);
+  if (doc === 'land') return {
+    conf: +(0.9 + r() * 0.07).toFixed(2),
+    fields: [
+      { k: 'Document', v: 'Khatauni (UP land record)', ok: true },
+      { k: 'Owner name', v: f.name, ok: true, note: 'Matches AgriStack' },
+      { k: 'Khasra numbers', v: `${110 + Math.floor(r() * 300)}, ${410 + Math.floor(r() * 200)}`, ok: true },
+      { k: 'Area', v: `${(f.acres * 0.405).toFixed(2)} ha`, ok: true, note: 'Matches plot boundary' },
+      { k: 'Village', v: f.village, ok: true },
+      { k: 'Encumbrance', v: f.tenant ? 'Tenant: group loan route' : 'None recorded', ok: !f.tenant },
+    ],
+  };
+  return {
+    conf: +(0.92 + r() * 0.06).toFixed(2),
+    fields: [
+      { k: 'Document', v: 'Bank passbook, first page', ok: true },
+      { k: 'Account holder', v: f.name, ok: true, note: 'Matches AgriStack' },
+      { k: 'Account', v: 'XXXX XXXX ' + (1000 + Math.floor(r() * 8999)), ok: true },
+      { k: 'IFSC', v: 'BKID000' + (1000 + Math.floor(r() * 8999)), ok: true },
+      { k: 'Branch', v: `${f.village}, ${f.district}`, ok: true },
+    ],
+  };
+}
+
+/** FINANCE · how long the current step usually takes. */
+export function eta(key: string, lang: Lang) {
+  const t = tr(lang);
+  const m: Record<string, [string, string]> = {
+    sanction: ['2–3 working days', '2–3 कार्यदिवस'], deliver: ['7–10 days', '7–10 दिन'], verifyDelivery: ['1–2 days', '1–2 दिन'],
+    commission: ['5–7 days', '5–7 दिन'], fieldCheck: ['3–5 days', '3–5 दिन'], subsidy: ['15–30 days (usually 4–6 months without Dhara)', '15–30 दिन (धारा के बिना आमतौर पर 4–6 महीने)'],
+    satellite: ['After the next dry spell, about 4–8 weeks', 'अगले सूखे के बाद, लगभग 4–8 हफ़्ते'], assetCheck: ['3–5 days', '3–5 दिन'], history: ['1–2 days', '1–2 दिन'],
+  };
+  const x = m[key];
+  return x ? t(x[0], x[1]) : '';
+}
+
+/** RECORD · resilience score with its parts. */
+export function resilienceScore(c: Case) {
+  const r = rng(c.id + 'score');
+  const h = c.kind === 'record' ? history(c.id, c.builtYear ?? 2021) : null;
+  const perf = h ? Math.round(30 * (1 - avg(h.plot.slice(-3)) / Math.max(1, avg(h.block.slice(-3))))) + 12 : 22 + Math.round(r() * 6);
+  const parts = [
+    { en: 'Asset verified in the field', hi: 'खेत में प्रमाणित', v: st(c, c.kind === 'record' ? 'assetCheck' : 'fieldCheck') === 'done' ? 30 : 10, max: 30 },
+    { en: 'Held up in dry spells', hi: 'सूखे में टिका रहा', v: Math.min(30, perf), max: 30 },
+    { en: 'In use, confirmed by satellite', hi: 'उपयोग में, सैटेलाइट से पुष्टि', v: st(c, c.kind === 'record' ? 'history' : 'satellite') === 'done' ? 20 : 6, max: 20 },
+    { en: 'Upkeep and repayment', hi: 'रखरखाव और भुगतान', v: 13 + Math.round(r() * 6), max: 20 },
+  ];
+  const total = parts.reduce((a, p) => a + p.v, 0);
+  return { total, parts, band: total >= 80 ? 'Strong' : total >= 60 ? 'Good' : 'Building' };
+}
+const avg = (a: number[]) => a.reduce((x, y) => x + y, 0) / (a.length || 1);
+
+/** RECORD · what a lender reads, written for them. */
+export function lenderSummary(c: Case, f: Farmer, lang: Lang) {
+  const t = tr(lang);
+  const a = assetName(c.asset, lang);
+  const sc = resilienceScore(c);
+  return t(
+    `${f.name} farms ${f.acres} acres in ${f.village}, ${f.district}. Her ${a.toLowerCase()}${c.builtYear ? `, built in ${c.builtYear},` : ''} has been independently checked in the field and confirmed in use from satellite data. In dry years her field lost noticeably less greenness than neighbouring plots. Resilience score ${sc.total}/100 (${sc.band.toLowerCase()}). Every fact carries its source; the lending decision remains yours.`,
+    `${f.name} ${f.village}, ${f.district} में ${f.acres} एकड़ पर खेती करती हैं। उनका ${a}${c.builtYear ? ` (${c.builtYear} में बना)` : ''} खेत पर स्वतंत्र रूप से जाँचा गया और सैटेलाइट से उपयोग की पुष्टि हुई। सूखे सालों में उनके खेत की हरियाली पड़ोसी खेतों से कम घटी। रेज़िलिएंस स्कोर ${sc.total}/100। हर तथ्य का स्रोत दर्ज है; कर्ज़ का फ़ैसला आपका।`);
+}
+
+/** RECORD · ways the record can help her next. */
+export function recordUses(c: Case, f: Farmer, cases: Case[], lang: Lang) {
+  const t = tr(lang);
+  const owned = new Set(cases.map(x => x.asset));
+  const next = scanFarm(f).recs.find(r => !owned.has(r.asset));
+  const limit = Math.round(f.acres * 9000 / 1000) * 1000;
+  const cover = Math.round(ASSETS[c.asset].cost * 0.012);
+  return [
+    { org: 'Tata Capital', kind: 'kcc', title: t('Higher KCC limit', 'ज़्यादा KCC सीमा'), gain: t(`About ${inr(limit)} more, decided faster`, `लगभग ${inr(limit)} ज़्यादा, जल्दी फ़ैसला`), why: t('Lenders can see proof of irrigation they could not see before.', 'बैंक को सिंचाई का सबूत मिलता है।') },
+    { org: 'Tata AIG (asset cover)', kind: 'ins', title: t('Insure the asset', 'ढाँचे का बीमा'), gain: t(`About ${inr(cover)} a year`, `लगभग ${inr(cover)} सालाना`), why: t('A verified record means no separate inspection.', 'प्रमाणित रिकॉर्ड से अलग जाँच नहीं।') },
+    ...(next ? [{ org: 'Tata Capital', kind: 'next', title: t(`Finance ${assetName(next.asset, lang).toLowerCase()} next`, `अगला: ${assetName(next.asset, lang)}`), gain: t(`You would pay ${inr(plan(next.asset, next.units).own)} upfront`, `अभी ${inr(plan(next.asset, next.units).own)} देना होगा`), why: lang === 'hi' ? next.reasons[0].hi : next.reasons[0].en }] : []),
+  ];
 }

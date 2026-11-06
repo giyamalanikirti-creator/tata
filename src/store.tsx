@@ -27,6 +27,6 @@ export const useStore = () => {
 export function parseHash(h: string): Route {
   const [page, id] = h.replace(/^#\/?/, '').split('/');
   const pages: Route['page'][] = ['overview', 'queue', 'case', 'assess', 'portfolio', 'records', 'thesis', 'farmer'];
-  return pages.includes(page as Route['page']) ? { page: page as Route['page'], id: id ? decodeURIComponent(id) : undefined } : { page: 'overview' };
+  return pages.includes(page as Route['page']) ? { page: page as Route['page'], id: id ? decodeURIComponent(id) : undefined } : { page: 'farmer', id: 'home' };
 }
 export const toHash = (r: Route) => '#/' + r.page + (r.id ? '/' + encodeURIComponent(r.id) : '');

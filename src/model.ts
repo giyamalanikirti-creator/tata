@@ -27,9 +27,9 @@ export type Case = {
   evidence: Evidence[]; shares: Share[]; log: LogEvent[]; declined?: string; parent?: string; requests?: AccessRequest[];
 };
 
-export type State = { v: 3; farmers: Farmer[]; cases: Case[] };
+export type State = { v: 4; farmers: Farmer[]; cases: Case[] };
 
-export const KEY = 'dhara.v3';
+export const KEY = 'dhara.v4';
 export const today = () => new Date().toISOString().slice(0, 10);
 export const uid = (p = 'x') => p + Math.random().toString(36).slice(2, 8);
 
@@ -211,6 +211,39 @@ export function reworkStep(c: Case, key: string, by: Role, note: string, at = to
   log(c, by, `Rework submitted for “${s.label}”: ${note}`, undefined, at);
 }
 
+export function fakePhoto(label: string, geo: string, at: string) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220"><defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe3ea"/><stop offset="1" stop-color="#f4ead2"/></linearGradient></defs><rect width="320" height="220" fill="url(#s)"/><path d="M0 120 Q80 100 160 118 T320 112 V220 H0Z" fill="#b9c98f"/><path d="M0 150 Q90 132 170 150 T320 146 V220 H0Z" fill="#8fae6a"/>${[0, 1, 2, 3, 4, 5].map(i => `<line x1="${20 + i * 50}" y1="220" x2="${120 + i * 14}" y2="132" stroke="#3f6b45" stroke-width="2.5"/>`).join('')}<circle cx="262" cy="46" r="20" fill="#f6c76b"/><rect x="0" y="182" width="320" height="38" fill="#0b2a20cc"/><text x="10" y="198" font-family="monospace" font-size="11" fill="#fff">${label}</text><text x="10" y="212" font-family="monospace" font-size="10" fill="#c8e6d4">${geo} · ${at}</text></svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+const GEO = '25.39\u00b0 N, 79.71\u00b0 E';
+
+/** Demo control: perform whatever the next party would do, so a farmer-only demo can walk a case to the end. */
+export function demoAdvance(c: Case, at = today()): string {
+  const a = activeSteps(c);
+  if (!a.length || c.declined) return '';
+  const s = a.find(x => st(c, x.key) === 'failed') ?? a[0];
+  if (st(c, s.key) === 'failed') { reworkStep(c, s.key, c.kind === 'finance' ? 'installer' : 'mitra', 'Fixed and resubmitted (demo)', at); return 'Rework submitted'; }
+  const v = 'Meera Singh \u00b7 Field verifier';
+  switch (s.key) {
+    case 'sanction': completeStep(c, 'sanction', 'lender', c.bridge ? 'Sanctioned with subsidy bridge' : 'Sanctioned', at); break;
+    case 'deliver': case 'commission': {
+      const d = s.key === 'deliver';
+      c.evidence.unshift({ id: uid('e'), label: d ? 'Invoice and delivery photos' : 'Commissioning photos', detail: d ? `Invoice for ${ASSETS[c.asset].name.toLowerCase()} kit` : 'Asset fitted and run on the plot', prov: 'installer', at, by: installerName(c.installer), geo: GEO + ' \u00b7 within plot boundary', file: { name: d ? 'delivery.svg' : 'commissioning.svg', type: 'image/svg+xml', data: fakePhoto((d ? 'DELIVERY \u00b7 ' : 'COMMISSIONING \u00b7 ') + c.id, GEO, at) } });
+      completeStep(c, s.key, 'installer', d ? 'Kit delivered to the plot' : 'Fitted and tested on the plot', at); break;
+    }
+    case 'verifyDelivery': case 'fieldCheck': case 'assetCheck':
+      c.evidence.unshift({ id: uid('e'), label: s.key === 'verifyDelivery' ? 'Delivery matched to invoice' : s.key === 'assetCheck' ? 'Asset installed and working' : 'Installed correctly and runs', detail: 'Field visit', prov: 'verified', at, by: v });
+      completeStep(c, s.key, 'verifier', s.key === 'verifyDelivery' ? 'Kit matches invoice' : 'Working on the plot', at); break;
+    case 'satellite': case 'history':
+      c.evidence.unshift({ id: uid('e'), label: s.key === 'history' ? 'Dry-spell history since 2017' : 'In use through first dry spell', detail: 'Field stayed greener than the block in dry weeks', prov: 'remote', at, by: 'Dhara satellite stack' });
+      completeStep(c, s.key, 'verifier', 'Confirmed by satellite', at); break;
+    case 'subsidy': completeStep(c, 'subsidy', 'state', 'Pack accepted', at); break;
+    default: return '';
+  }
+  return s.label;
+}
+
 export const PROV: Record<Provenance, { label: string; short: string }> = {
   self: { label: 'Self-reported', short: 'Self' },
   installer: { label: 'Installer-reported', short: 'Installer' },
@@ -275,7 +308,7 @@ function walk(c: Case, script: [string, Role, string, string][]) {
   advance(c, c.created);
   for (const [key, by, note, at] of script) {
     if (key === 'deliver' || key === 'commission') {
-      c.evidence.unshift({ id: uid('e'), label: key === 'deliver' ? 'Invoice and delivery photos' : 'Commissioning photos', detail: key === 'deliver' ? `Invoice ${c.id.slice(3)}-${key.length} for ${ASSETS[c.asset].name.toLowerCase()} kit` : 'Asset fitted and run on the plot', prov: 'installer', at, by: installerName(c.installer), geo: '25.39° N, 79.71° E · within plot boundary' });
+      c.evidence.unshift({ id: uid('e'), label: key === 'deliver' ? 'Invoice and delivery photos' : 'Commissioning photos', detail: key === 'deliver' ? `Invoice ${c.id.slice(3)}-${key.length} for ${ASSETS[c.asset].name.toLowerCase()} kit` : 'Asset fitted and run on the plot', prov: 'installer', at, by: installerName(c.installer), geo: '25.39° N, 79.71° E · within plot boundary', file: { name: key + '.svg', type: 'image/svg+xml', data: fakePhoto((key === 'deliver' ? 'DELIVERY · ' : 'COMMISSIONING · ') + c.id, '25.39° N, 79.71° E', at) } });
     }
     if (key === 'verifyDelivery' || key === 'fieldCheck' || key === 'assetCheck') c.evidence.unshift({ id: uid('e'), label: key === 'verifyDelivery' ? 'Delivery matched to invoice' : key === 'assetCheck' ? 'Asset installed and working' : 'Installed correctly and runs', detail: note, prov: 'verified', at, by: 'Meera Singh · Field verifier' });
     if (key === 'satellite' || key === 'history') c.evidence.unshift({ id: uid('e'), label: key === 'history' ? 'Dry-spell history since 2017' : 'In use through first dry spell', detail: note, prov: 'remote', at, by: 'Dhara satellite stack' });
@@ -291,6 +324,7 @@ export function seed(): State {
     { id: 'geeta', name: 'Geeta Rajput', agristack: 'UP-09-5562-1170', village: 'Naraini', district: 'Banda', acres: 4, crop: 'Mustard, lentil', water: 'Diesel pump on canal', woman: true, tenant: false, phone: '9919463007' },
     { id: 'rajesh', name: 'Rajesh Kushwaha', agristack: 'UP-09-2207-6631', village: 'Talbehat', district: 'Lalitpur', acres: 2.5, crop: 'Soybean, wheat', water: 'Borewell', woman: false, tenant: false, phone: '9450172284' },
     { id: 'ramkali', name: 'Ramkali Ahirwar', agristack: 'UP-09-6115-4402', village: 'Charkhari', district: 'Mahoba', acres: 1.5, crop: 'Chickpea, barley', water: 'Farm pond (2022)', woman: true, tenant: true, phone: '9721306645' },
+    { id: 'kamla', name: 'Kamla Devi', agristack: 'UP-09-4120-8836', village: 'Kulpahar', district: 'Mahoba', acres: 2.5, crop: 'Wheat, chickpea', water: 'Rain-fed only', woman: true, tenant: false, phone: '9721148830' },
     { id: 'pushpa', name: 'Pushpa Patel', agristack: 'UP-09-7783-3019', village: 'Rath', district: 'Hamirpur', acres: 3, crop: 'Wheat, pea', water: 'Farm pond (2021)', woman: true, tenant: false, phone: '9838817730' },
   ];
   const cases: Case[] = [
@@ -347,7 +381,7 @@ export function seed(): State {
   done.shares.push({ id: 's2', org: 'Tata AIG (asset cover)', purpose: 'Asset insurance quote', granted: '2026-09-05', expires: '2027-03-05' });
   rr.requests = [{ id: 'q1', org: 'Tata AIG (asset cover)', purpose: 'Quote for pond and pump insurance', at: '2026-11-01', status: 'pending' }];
   done.requests = [{ id: 'q2', org: LENDER, purpose: 'KCC limit review before rabi', at: '2026-11-02', status: 'pending' }];
-  return { v: 3, farmers, cases };
+  return { v: 4, farmers, cases };
 }
 
 export function readState(): State {
@@ -355,7 +389,7 @@ export function readState(): State {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const s = JSON.parse(raw);
-      if (s && s.v === 3 && Array.isArray(s.farmers) && Array.isArray(s.cases) && s.cases.every((c: Case) => c && typeof c.id === 'string' && c.steps && Array.isArray(c.log))) return s;
+      if (s && s.v === 4 && Array.isArray(s.farmers) && Array.isArray(s.cases) && s.cases.every((c: Case) => c && typeof c.id === 'string' && c.steps && Array.isArray(c.log))) return s;
     }
   } catch { /* fall through to seed */ }
   return seed();
